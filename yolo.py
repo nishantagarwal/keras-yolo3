@@ -2,7 +2,7 @@ from keras.layers import Conv2D, Input, BatchNormalization, LeakyReLU, ZeroPaddi
 from keras.layers.merge import add, concatenate
 from keras.models import Model
 from keras.engine.topology import Layer
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 debug = False
 
@@ -42,7 +42,7 @@ class YoloLayer(Layer):
         object_mask     = tf.expand_dims(y_true[..., 4], 4)
 
         # the variable to keep track of number of batches processed
-        batch_seen = tf.Variable(0.)        
+        #batch_seen = tf.Variable(0.)        
 
         # compute grid factor and net factor
         grid_h      = tf.shape(y_true)[1]
@@ -148,15 +148,17 @@ class YoloLayer(Layer):
         """
         Warm-up training
         """
-        batch_seen = tf.assign_add(batch_seen, 1.)
+        #batch_seen = tf.assign_add(batch_seen, 1.)
         
-        true_box_xy, true_box_wh, xywh_mask = tf.cond(tf.less(batch_seen, self.warmup_batches+1), 
+        """ true_box_xy, true_box_wh, xywh_mask = tf.cond(tf.less(batch_seen, self.warmup_batches+1), 
                               lambda: [true_box_xy + (0.5 + self.cell_grid[:,:grid_h,:grid_w,:,:]) * (1-object_mask), 
                                        true_box_wh + tf.zeros_like(true_box_wh) * (1-object_mask), 
                                        tf.ones_like(object_mask)],
                               lambda: [true_box_xy, 
                                        true_box_wh,
-                                       object_mask])
+                                       object_mask]) """
+
+        true_box_xy, true_box_wh, xywh_mask =  [true_box_xy, true_box_wh, object_mask]                               
 
         """
         Compare each true box to all anchor boxes

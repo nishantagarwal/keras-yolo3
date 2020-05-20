@@ -151,7 +151,7 @@ class BatchGenerator(Sequence):
         if idx%10 == 0:
             net_size = self.downsample*np.random.randint(self.min_net_size/self.downsample, \
                                                          self.max_net_size/self.downsample+1)
-            print("resizing: ", net_size, net_size)
+            #print("resizing: ", net_size, net_size)
             self.net_h, self.net_w = net_size, net_size
         return self.net_h, self.net_w
     
@@ -165,21 +165,21 @@ class BatchGenerator(Sequence):
         image_h, image_w, _ = image.shape
         
         # determine the amount of scaling and cropping
-        dw = self.jitter * image_w;
-        dh = self.jitter * image_h;
+        dw = self.jitter * image_w
+        dh = self.jitter * image_h
 
-        new_ar = (image_w + np.random.uniform(-dw, dw)) / (image_h + np.random.uniform(-dh, dh));
-        scale = np.random.uniform(0.25, 2);
+        new_ar = (image_w + np.random.uniform(-dw, dw)) / (image_h + np.random.uniform(-dh, dh))
+        scale = np.random.uniform(0.25, 2)
 
         if (new_ar < 1):
-            new_h = int(scale * net_h);
-            new_w = int(net_h * new_ar);
+            new_h = int(scale * net_h)
+            new_w = int(net_h * new_ar)
         else:
-            new_w = int(scale * net_w);
-            new_h = int(net_w / new_ar);
+            new_w = int(scale * net_w)
+            new_h = int(net_w / new_ar)
             
-        dx = int(np.random.uniform(0, net_w - new_w));
-        dy = int(np.random.uniform(0, net_h - new_h));
+        dx = int(np.random.uniform(0, net_w - new_w))
+        dy = int(np.random.uniform(0, net_h - new_h))
         
         # apply scaling and cropping
         im_sized = apply_random_scale_and_crop(image, new_w, new_h, net_w, net_h, dx, dy)

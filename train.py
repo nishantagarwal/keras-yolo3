@@ -8,7 +8,7 @@ from voc import parse_voc_annotation
 from yolo import create_yolov3_model, dummy_loss
 from generator import BatchGenerator
 from utils.utils import normalize, evaluate, makedirs
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from keras.optimizers import Adam
 from callbacks import CustomModelCheckpoint, CustomTensorBoard
 from utils.multi_gpu_model import multi_gpu_model
@@ -17,13 +17,10 @@ import keras
 from keras.models import load_model
 
 
-config = tf.compat.v1.ConfigProto(
-    gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.9)
-    # device_count = {'GPU': 1}
-)
-config.gpu_options.allow_growth = True
-session = tf.compat.v1.Session(config=config)
-tf.compat.v1.keras.backend.set_session(session)
+#config = tf.compat.v1.ConfigProto()
+#config.gpu_options.allow_growth = True
+#session = tf.compat.v1.Session(config=config)
+#tf.compat.v1.keras.backend.set_session(session)
 
 def create_training_instances(
     train_annot_folder,
@@ -104,8 +101,34 @@ def create_callbacks(saved_weights_name, tensorboard_logs, model_to_save):
         log_dir                = tensorboard_logs,
         write_graph            = True,
         write_images           = True,
-    )    
-    return [early_stop, checkpoint, reduce_on_plateau, tensorboard]
+    )
+    # Learning rate reduce
+    reduce_on_plateau = ReduceLROnPlateau(
+        monitor="loss",  # val_accuracy, loss
+        factor=0.1,
+        patience=7,
+        verbose=1,
+        mode="min",
+        cooldown=0,
+        min_lr=0,
+        min_delta=0.01,
+    )
+
+    # Tensorboard log callback
+    tb_cb = tf.keras.callbacks.TensorBoard(
+        log_dir=tensorboard_logs,
+        histogram_freq=0,
+        write_graph=True,
+        profile_batch=0
+    )
+
+    # Model checkpoint callback
+    checkpoint_cb = ModelCheckpoint(
+        saved_weights_name, monitor="loss", verbose=1, save_best_only=True,
+        save_weights_only=True, mode="min", period=1
+    )
+
+    return [reduce_on_plateau, checkpoint_cb]
 
 def create_model(
     nb_class, 
@@ -260,10 +283,8 @@ def _main_(args):
         generator        = train_generator, 
         steps_per_epoch  = len(train_generator) * config['train']['train_times'], 
         epochs           = config['train']['nb_epochs'] + config['train']['warmup_epochs'], 
-        verbose          = 2 if config['train']['debug'] else 1,
-        callbacks        = callbacks, 
-        workers          = 4,
-        max_queue_size   = 8
+        verbose          = 1,
+        callbacks        = callbacks
     )
 
     # make a GPU version of infer_model for evaluation
